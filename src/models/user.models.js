@@ -64,8 +64,6 @@ userSchema.methods.isPasswordCorrect = async function(password){
 }
 
 
-
-
 userSchema.methods.generateAccessToken = function(){
     return jsonwebtoken.sign(
         {
