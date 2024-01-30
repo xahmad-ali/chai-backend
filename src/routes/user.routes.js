@@ -6,7 +6,7 @@ const router = Router();
 
 console.log("debug");
 
-/*
+
  router.route("/register").post(
     upload.fields([
         {
@@ -18,8 +18,9 @@ console.log("debug");
            maxCount: 1 
         }
     ]),
-    registerUser) ;   */
+    registerUser) ;   
 
+    /*
 router.post("/register", registerUser);
 router.post("/register",upload.fields([
     {
@@ -31,5 +32,6 @@ router.post("/register",upload.fields([
         maxCount:1
     }
 ]));
+*/
 
 export default router;
