@@ -3,6 +3,28 @@ import { ApiError} from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import cookieParser from "cookie-parser";
+
+
+// generating acess ad refresh tokens
+const generate_AccessAndRefresh_Tokens = async(userId) => {
+
+  try {
+      const user= await User.findById(userId)
+      const User_Access_Token = user.generateAccessToken()
+      const User_Refresh_Token = user.generateRefreshToken()
+
+      user.refreshToken = User_Refresh_Token
+      await user.save({validateBeforeSave: false})
+
+      return {User_Access_Token,User_Refresh_Token}
+       
+  } catch (error) {
+      throw new ApiError(500,"Something went wrong while generating ACCESS and REFRESH TOKEN")
+  }
+
+
+};
 
 
 // Response design to follow
@@ -15,10 +37,9 @@ return res.status(500).json({
   });
   */
 
+
+
 const registerUser = asyncHandler(async (req, res) => {
-
-  
-
     const {fullname,email,username ,password} = req.body
     console.log("email: ", email);
 
@@ -82,7 +103,90 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
 
- export { registerUser };
+const loginUser = asyncHandler( async (req, res) => {
+
+    // req body-> data
+    //username base or email base
+    //find user 
+    // check password -if not-> error 
+    // acces token and refresh token 
+    // send secure cookies
+    // respones of successful
+
+    const {email,username,password}=req.body
+
+    if(!(username || email)){
+      throw new ApiError(400,"username or email is required")
+    }
+
+   const user=await User.findOne({
+      $or: [{username}, {email}]
+    })
+
+    if(!user){
+      throw new ApiError(404,"User does not exist")
+    }
+
+   
+
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if(!isPasswordValid){
+      throw new ApiError(401,"Password is not valid")
+    }
+
+    const {accessToken, refreshToken} = await generate_AccessAndRefresh_Tokens(user._id)
+
+    const logedInUser = User.findById(user._id).select("-password -refreshToken").exec();
+
+    const options = {
+      httpOnly: true,
+      secure: true
+    }
+    console.log(email)
+    return res.status(200).cookie("accessToken",accessToken,options).cookie("refreshToken",refreshToken,options).json(
+      new ApiResponse(200,
+        {
+          user: logedInUser, accessToken,refreshToken
+        },
+        "User logedIn successfuly and tokens are sent also"
+        )
+    )
+    
+});
+
+const logOutUser= asyncHandler(async(req, res) => {
+    // reomoving tokens
+    //
+    User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set: {
+          refreshToken: undefined
+        },
+      },
+      {
+        new: true
+      }
+    )
+
+    const options = {
+      httpOnly: true,
+      secure: true
+    }
+
+    return res.status(200).clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
+    .json(
+      new ApiResponse(200,{},"User logged out successfuly")
+    )
+
+
+
+
+  });
+
+ export { registerUser, loginUser, logOutUser };
 
 //get user details 
 // validations -not empty - already exist 
@@ -90,14 +194,6 @@ const registerUser = asyncHandler(async (req, res) => {
 //upload on cloudinary
 //multer check
 // create db 
-
-
-
-
-
-
-
-
 
 /*
  console.log("Register user route hit!");
