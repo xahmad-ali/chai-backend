@@ -236,6 +236,8 @@ const refereshAccessToken = asyncHandler(async(req, res) => {
 });
   export { registerUser, loginUser, logOutUser, refereshAccessToken };
 
+
+  
 //get user details 
 // validations -not empty - already exist 
 // check for name,email,fullname,avtar
