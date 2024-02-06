@@ -5,6 +5,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
+import nodeMailer from "nodemailer";
 
 
 // generating acess ad refresh tokens
@@ -76,6 +77,7 @@ const registerUser = asyncHandler(async (req, res) => {
       throw new ApiError(400,"Avatar file is required")
     }
 
+
     const user = await User.create({
       fullname,
       avatar: avatar.url,
@@ -92,6 +94,31 @@ const registerUser = asyncHandler(async (req, res) => {
     if(!createdUser){
       throw new ApiError(500,"somthing went wrong while creating user on the server")
     }
+
+     // sending email to user
+     const transporter = nodeMailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'ahmadhashmi152003@gmail.com',
+        pass: 'pmmm iutr ecry sstp'
+      }
+    });
+
+    const mailOptions = {
+      from: 'ahmadhashmi152003@gmail.com',
+      to: email,
+      subject: 'Sending Email from Ahmad ki fisrt website',
+      text: `Hi! kesy hyn Dear ${fullname},\n\n Welcome to Ahmad ki fist website.`
+
+    };
+
+    transporter.sendMail(mailOptions, function(error, info){
+      if (error) {
+        console.log(error);
+      } else {
+        console.log('Email sent: ' + info.response);
+      }
+    });
 
     return res.status(201).json(
       new ApiResponse(200,createdUser,"User registerd Successfuly")
@@ -234,7 +261,27 @@ const refereshAccessToken = asyncHandler(async(req, res) => {
 
 
 });
-  export { registerUser, loginUser, logOutUser, refereshAccessToken };
+
+
+// to change user password
+const changeUserPassword = asyncHandler(async(req, res) => {
+
+  const {oldPassword, newPassword} = req.body
+
+  const user = User.findById(req.user?._id)
+  const isPasswordCorrect= await isPasswordCorrect(oldPassword)
+  if(!isPasswordCorrect){
+    throw new ApiError(400,"Invalid User password")
+  }
+
+  user.password= newPassword
+  user.save({validateBeforeSave: false})
+
+  return res.status(200).json(new ApiResponse(200,{},"Password changed Successfuly"))
+})
+
+
+  export { registerUser, loginUser, logOutUser, refereshAccessToken,changeUserPassword };
 
 
   
